@@ -87,6 +87,7 @@ class AlternatingLeastSquares(MatrixFactorizationBase):
         self.num_threads = num_threads
         self.fit_callback = None
         self.cg_steps = 3
+        self.loss = None
 
         # cache for item factors squared
         self._YtY = None
@@ -162,15 +163,15 @@ class AlternatingLeastSquares(MatrixFactorizationBase):
                 progress.update(1)
 
                 if self.calculate_training_loss:
-                    loss = _als.calculate_loss(Cui, self.user_factors, self.item_factors,
+                    self.loss = _als.calculate_loss(Cui, self.user_factors, self.item_factors,
                                                self.regularization, num_threads=self.num_threads)
-                    progress.set_postfix({"loss": loss})
+                    progress.set_postfix({"loss": self.loss})
 
                 if self.fit_callback:
                     self.fit_callback(iteration, time.time() - s)
 
         if self.calculate_training_loss:
-            log.info("Final training loss %.4f", loss)
+            log.info("Final training loss %.4f", self.loss)
 
     def _fit_gpu(self, Ciu_host, Cui_host, show_progress=True):
         """ specialized training on the gpu. copies inputs to/from cuda device """
@@ -201,11 +202,11 @@ class AlternatingLeastSquares(MatrixFactorizationBase):
                     self.fit_callback(iteration, time.time() - s)
 
                 if self.calculate_training_loss:
-                    loss = solver.calculate_loss(Cui, X, Y, self.regularization)
-                    progress.set_postfix({"loss": loss})
+                    self.loss = solver.calculate_loss(Cui, X, Y, self.regularization)
+                    progress.set_postfix({"loss": self.loss})
 
         if self.calculate_training_loss:
-            log.info("Final training loss %.4f", loss)
+            log.info("Final training loss %.4f", self.loss)
 
         X.to_host(self.user_factors)
         Y.to_host(self.item_factors)
